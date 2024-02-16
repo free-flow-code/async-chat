@@ -1,20 +1,7 @@
-import os
 import asyncio
 import aiofiles
-import argparse
-from environs import Env
 from datetime import datetime
-
-env = Env()
-env.read_env()
-
-
-def parse_arguments():
-    parser = argparse.ArgumentParser(description='Message chat.')
-    parser.add_argument('--host', default='', type=str, help='chat hostname')
-    parser.add_argument('--port', type=int, help='chat port number')
-    parser.add_argument('--history', default='messages.txt', type=str, help='chating history')
-    return parser.parse_args()
+from environs_processing import fetch_environs
 
 
 async def write_to_file(filepath, message):
@@ -47,15 +34,10 @@ async def read_chat_messages(host, port, filepath):
 
 
 def main():
-    if os.path.isfile('.env'):
-        host = env.str('HOST')
-        port = env.int('PORT')
-        filepath = env.str('HISTORY', 'messages.txt')
-    else:
-        args = parse_arguments()
-        host = args.host
-        port = args.port
-        filepath = args.history
+    environs = fetch_environs()
+    host = environs['host']
+    port = environs['read_port']
+    filepath = environs['filepath']
 
     asyncio.run(read_chat_messages(host, port, filepath))
 
