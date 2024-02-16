@@ -1,3 +1,4 @@
+import logging
 import asyncio
 import aiofiles
 from datetime import datetime
@@ -22,18 +23,19 @@ async def read_chat_messages(host, port, filepath):
             print(date_now, message)
             await write_to_file(filepath, f'{date_now} {message}\n')
 
-        print('Close the connection')
+        logging.debug('Close the connection.')
         writer.close()
         await writer.wait_closed()
     except ConnectionError as err:
-        print(f'Connection error: {err}')
+        logging.error(f'{err}')
     except asyncio.CancelledError:
-        print('Cancelled')
+        logging.error('Cancelled.')
     except Exception as err:
-        print(f'Unexpected error: {err}')
+        logging.error(f'{err}')
 
 
 def main():
+    logging.getLogger('asyncio').setLevel(logging.DEBUG)
     environs = fetch_environs()
     host = environs['host']
     port = environs['read_port']

@@ -1,3 +1,4 @@
+import logging
 import asyncio
 from environs_processing import fetch_environs
 
@@ -7,17 +8,19 @@ async def send_message(host, port, message):
         reader, writer = await asyncio.open_connection(f'{host}', port)
         writer.write(f'{message}\n\n'.encode())
         await writer.drain()
+
         writer.close()
         await writer.wait_closed()
     except ConnectionError as err:
-        print(f'Connection error: {err}')
+        logging.error(f'{err}')
     except asyncio.CancelledError:
-        print('Cancelled')
+        logging.error('Cancelled.')
     except Exception as err:
-        print(f'Unexpected error: {err}')
+        logging.error(f'{err}')
 
 
 def main():
+    logging.getLogger('asyncio').setLevel(logging.DEBUG)
     environs = fetch_environs()
     host = environs['host']
     port = environs['send_port']
