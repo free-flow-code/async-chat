@@ -6,7 +6,7 @@
 название файла с историей сообщений можно задать либо с помощью переменных окружения,
 либо аргументами командной строки.
 
-Для запуска Python 3.10 или выше должен быть установлен.
+Для запуска Python 3.10 должен быть установлен.
 Установите необходимые библиотеки:
 
 ```
@@ -19,7 +19,7 @@ pip3 install -r requirements.txt
 python3 main.py --host <chat_hostname> --read-port <port_number> --history <file_name>
 ```
 
-По умолчанию --history = messages.txt. Т.е. история сообщений будет сохранена
+По умолчанию `--history = messages.txt`. Т.е. история сообщений будет сохранена
 в файле `messages.txt` рядом с файлом скрипта. Можно указать свой путь и имя файла.
 
 **Номера портов для чтения и отправления сообщений отличаются.**
@@ -27,8 +27,10 @@ python3 main.py --host <chat_hostname> --read-port <port_number> --history <file
 ## Отправление сообщений
 
 ```
-python3 main.py --host <chat_hostname> --send-port <port_number> --message <some_text>
+python3 main.py --host <chat_hostname> --send-port <port_number> --message <some_text> --token <authorized_token>
 ```
+
+`--token` - необязательный параметр для авторизации в чате.
 
 **Номера портов для чтения и отправления сообщений отличаются.**
 
@@ -41,6 +43,7 @@ HOST=<chat_hostname>
 READ_PORT=<port_number>
 SEND_PORT=<port_number>
 HISTORY=<file_name>
+TOKEN=<authorized_token>
 ```
 
-По умолчанию HISTORY = messages.txt.
+TOKEN - необязательный параметр для авторизации в чате.

@@ -1,16 +1,29 @@
+import json
 import logging
 import asyncio
 from environs_processing import fetch_environs
 
 
-async def send_message(host, port, message):
+async def send_message(host, port, message, token):
     try:
         reader, writer = await asyncio.open_connection(f'{host}', port)
-        writer.write(f'{message}\n\n'.encode())
-        await writer.drain()
+        answer = await reader.readline()
+        logging.debug(answer.decode())
 
+        if token:
+            writer.write(f'{token}'.encode())
+            await writer.drain()
+            response_message = await reader.readline()
+            assert json.loads('null') is None
+            response_data = json.loads(response_message.decode())
+            if response_data is None:
+                logging.error('Неизвестный токен. Проверьте его или зарегистрируйте заново.')
+                return
+
+        writer.write(f"{message}\n\n".encode())
         writer.close()
         await writer.wait_closed()
+
     except ConnectionError as err:
         logging.error(f'{err}')
     except asyncio.CancelledError:
@@ -22,14 +35,15 @@ async def send_message(host, port, message):
 def main():
     logging.getLogger('asyncio').setLevel(logging.DEBUG)
     environs = fetch_environs()
-    host = environs['host']
-    port = environs['send_port']
-    message = environs['message']
+    host = environs.get('host')
+    port = environs.get('send_port')
+    message = environs.get('message')
+    token = environs.get('token')
 
     if not message:
         message = input('Введите сообщение: ')
 
-    asyncio.run(send_message(host, port, message))
+    asyncio.run(send_message(host, port, message, token))
 
 
 if __name__ == '__main__':
