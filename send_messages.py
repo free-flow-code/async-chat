@@ -3,7 +3,27 @@ import json
 import logging
 import asyncio
 import aiofiles
-from environs_processing import fetch_environs
+import argparse
+import textwrap
+from environs_processing import get_env_contents
+
+
+def parse_arguments():
+    parser = argparse.ArgumentParser(
+        description=textwrap.dedent(
+            '''
+            Script for connecting to chat via TCP/UPD.
+            Sends a message to the chat. Allows you to
+            register and log in using a token.
+            '''
+        )
+    )
+    parser.add_argument('message', type=str, help='message sent to chat')
+    parser.add_argument('--host', type=str, help='chat hostname')
+    parser.add_argument('--send-port', type=int, help='chat port number for sending messages')
+    parser.add_argument('--token', type=str, help='authorized token for connection to chat')
+    parser.add_argument('--username', type=str, help='username for registration')
+    return parser.parse_args()
 
 
 def escape_control_symbols(string):
@@ -21,8 +41,8 @@ async def authorise(reader, writer, token):
     return authorise_data
 
 
-async def register(reader, writer):
-    username = input('Введите желаемое имя: ')
+async def register(reader, writer, username):
+    username = username or input('Введите желаемое имя: ')
     writer.write(f'{escape_control_symbols(username)}\n'.encode())
 
     account_data = await reader.readline()
@@ -37,7 +57,7 @@ async def submit_message(writer, message):
     await writer.drain()
 
 
-async def connect_to_chat(host, port, message, token):
+async def connect_to_chat(host, port, message, token, username):
     try:
         reader, writer = await asyncio.open_connection(f'{host}', port)
         answer = await reader.readline()
@@ -51,7 +71,7 @@ async def connect_to_chat(host, port, message, token):
 
         if not await authorise(reader, writer, token):
             logging.debug('Неизвестный токен. Регистрация нового пользователя.')
-            if await register(reader, writer):
+            if await register(reader, writer, username):
                 logging.debug('Новый аккаунт зарегистрирован. Данные записаны в файл.')
 
         await submit_message(writer, message)
@@ -76,16 +96,16 @@ def main():
         filemode='w',
         format='%(asctime)s %(levelname)s %(message)s'
     )
-    environs = fetch_environs()
-    host = environs.get('host')
-    port = environs.get('send_port')
-    message = environs.get('message')
-    token = environs.get('token')
 
-    if not message:
-        message = input('Введите сообщение: ')
+    args = vars(parse_arguments())
+    environs = get_env_contents()
+    message = args.get('message')
+    host = args.get('host') or environs.get('host')
+    port = args.get('send_port') or environs.get('send_port')
+    token = args.get('token') or environs.get('token')
+    username = args.get('username') or environs.get('username')
 
-    asyncio.run(connect_to_chat(host, port, escape_control_symbols(message), token))
+    asyncio.run(connect_to_chat(host, port, escape_control_symbols(message), token, username))
 
 
 if __name__ == '__main__':
