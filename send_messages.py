@@ -6,6 +6,10 @@ import aiofiles
 from environs_processing import fetch_environs
 
 
+def escape_control_symbols(string):
+    return string.replace('\n', '')
+
+
 async def authorise(reader, writer, token):
     writer.write(f'{token}\n'.encode())
     await writer.drain()
@@ -19,7 +23,7 @@ async def authorise(reader, writer, token):
 
 async def register(reader, writer):
     username = input('Введите желаемое имя: ')
-    writer.write(f'{username}\n'.encode())
+    writer.write(f'{escape_control_symbols(username)}\n'.encode())
 
     account_data = await reader.readline()
     async with aiofiles.open('account_data.json', mode='w') as file:
@@ -81,7 +85,7 @@ def main():
     if not message:
         message = input('Введите сообщение: ')
 
-    asyncio.run(connect_to_chat(host, port, message, token))
+    asyncio.run(connect_to_chat(host, port, escape_control_symbols(message), token))
 
 
 if __name__ == '__main__':
