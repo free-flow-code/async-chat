@@ -1,6 +1,8 @@
+import os
 import json
 import logging
 import asyncio
+import aiofiles
 from environs_processing import fetch_environs
 
 
@@ -9,6 +11,18 @@ async def send_message(host, port, message, token):
         reader, writer = await asyncio.open_connection(f'{host}', port)
         answer = await reader.readline()
         logging.debug(answer.decode())
+
+        if not os.path.isfile('account_data.json'):
+            writer.write("\n".encode())
+            await writer.drain()
+            await reader.readline()
+            username = input('Введите желаемое имя: ')
+            writer.write(f"{username}\n".encode())
+            account_data = await reader.readline()
+            logging.debug(account_data.decode())
+            async with aiofiles.open('account_data.json', mode="w") as file:
+                await file.write(account_data.decode())
+            return
 
         if token:
             writer.write(f'{token}'.encode())
