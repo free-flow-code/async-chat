@@ -5,6 +5,7 @@ import asyncio
 import aiofiles
 import argparse
 import textwrap
+from contextlib import asynccontextmanager
 from environs_processing import get_env_contents
 
 
@@ -58,10 +59,8 @@ async def submit_message(writer, message):
 
 
 async def connect_to_chat(host, port, message, token, username):
-    try:
-        reader, writer = await asyncio.open_connection(f'{host}', port)
-        answer = await reader.readline()
-        logging.debug(answer.decode())
+    async with handle_sending_message(host, port) as connection:
+        reader, writer = connection[0], connection[1]
 
         if not token and os.path.isfile('account_data.json'):
             async with aiofiles.open('account_data.json', mode='r') as file:
@@ -76,8 +75,15 @@ async def connect_to_chat(host, port, message, token, username):
 
         await submit_message(writer, message)
         logging.debug('Сообщение отправлено.')
-        writer.close()
-        await writer.wait_closed()
+
+
+@asynccontextmanager
+async def handle_sending_message(host, port):
+    try:
+        reader, writer = await asyncio.open_connection(f'{host}', port)
+        answer = await reader.readline()
+        logging.debug(answer.decode())
+        yield reader, writer
 
     except json.JSONDecodeError as err:
         logging.error(f'Ошибка при декодировании JSON: {err}', exc_info=True)
@@ -87,6 +93,9 @@ async def connect_to_chat(host, port, message, token, username):
         logging.error('Cancelled.')
     except Exception as err:
         logging.error(f'{err}', exc_info=True)
+    finally:
+        writer.close()
+        await writer.wait_closed()
 
 
 def main():
