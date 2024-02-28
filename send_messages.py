@@ -95,6 +95,7 @@ async def handle_sending_message(host, port):
         logging.error(f'{err}', exc_info=True)
     finally:
         writer.close()
+        logging.debug('Close the connection.')
         await writer.wait_closed()
 
 

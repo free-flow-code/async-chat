@@ -4,6 +4,7 @@ import aiofiles
 import argparse
 import textwrap
 from datetime import datetime
+from contextlib import asynccontextmanager
 from environs_processing import get_env_contents
 
 
@@ -28,11 +29,27 @@ async def write_to_file(filepath, message):
         await file.write(message)
 
 
-async def read_chat_messages(host, port, filepath):
+@asynccontextmanager
+async def connect_to_chat(host, port):
     try:
-        reader, writer = await asyncio.open_connection(f'{host}', port)
+        reader, writer = await asyncio.open_connection(host, port)
+        yield reader, writer
+    except ConnectionError as err:
+        logging.error(f'{err}')
+    except asyncio.CancelledError:
+        logging.error('Cancelled.')
+    except Exception as err:
+        logging.error(f'{err}')
+    finally:
+        writer.close()
+        logging.debug('Close the connection.')
+        await writer.wait_closed()
 
+
+async def read_chat_messages(host, port, filepath):
+    async with connect_to_chat(host, port) as connection:
         while True:
+            reader, writer = connection[0], connection[1]
             data = await reader.read(1024)
             if not data:
                 break
@@ -40,16 +57,6 @@ async def read_chat_messages(host, port, filepath):
             date_now = f"[{datetime.strftime(datetime.now(), '%d.%m.%Y %H:%M')}]"
             print(date_now, message)
             await write_to_file(filepath, f'{date_now} {message}\n')
-
-        logging.debug('Close the connection.')
-        writer.close()
-        await writer.wait_closed()
-    except ConnectionError as err:
-        logging.error(f'{err}')
-    except asyncio.CancelledError:
-        logging.error('Cancelled.')
-    except Exception as err:
-        logging.error(f'{err}')
 
 
 def main():
